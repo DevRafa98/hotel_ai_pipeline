@@ -1,0 +1,7 @@
+openai
+supabase
+pydrive2
+pypdf
+python-docx
+tiktoken
+python-dotenv
