@@ -2,7 +2,7 @@ name: Update Knowledge Base
 
 on:
   schedule:
-    - cron: "0 * * * *"   # ⏰ se ejecuta cada hora
+    - cron: "*/10 * * * *"   # ⏰ se ejecuta cada hora
   workflow_dispatch:       # ⚡ también lo puedes lanzar manualmente
 
 jobs:
