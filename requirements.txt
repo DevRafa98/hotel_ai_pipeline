@@ -1,7 +1,8 @@
-openai
 supabase
-pydrive2
+langchain
+langchain-openai
 pypdf
-python-docx
-tiktoken
 python-dotenv
+tiktoken
+python-docx
+langchain-community

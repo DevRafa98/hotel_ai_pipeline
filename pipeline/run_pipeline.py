@@ -1,31 +1,60 @@
+import io
 import sys
-from drive_client import fetch_docs_from_drive
-from chunker import chunk_text
-from vectorizer import save_chunks_to_supabase
+from pypdf import PdfReader
+from docx import Document
+
+from .storage_client import list_docs, download_doc
+from .chunker import chunk_text
+from .vectorizer import save_chunks_to_supabase
 
 
-def main():
-    print("🚀 Iniciando pipeline de vectorización...\n")
+def read_doc(name: str, data: bytes) -> str:
+    """Lee documentos desde Supabase Storage."""
+    if name.endswith(".txt"):
+        return data.decode("utf-8", errors="replace")
 
-    # 1. Descargar docs desde Google Drive
-    docs = fetch_docs_from_drive()
+    elif name.endswith(".pdf"):
+        reader = PdfReader(io.BytesIO(data))
+        return "\n".join([p.extract_text() or "" for p in reader.pages])
+
+    elif name.endswith(".docx"):
+        doc = Document(io.BytesIO(data))
+        return "\n".join([p.text for p in doc.paragraphs])
+
+    else:
+        print(f"⚠️ Formato no soportado: {name}")
+        return ""
+
+
+def main(files=None):
+    print("🚀 Iniciando pipeline desde Supabase Storage...\n")
+
+    # Si se pasan archivos concretos → solo esos
+    # Si no → todos los del bucket
+    docs = files if files else list_docs()
+
     if not docs:
-        print("⚠️ No se encontraron documentos en la carpeta de Drive.")
-        sys.exit(0)
+        print("⚠️ No se encontraron documentos en el bucket.")
+        return
 
-    # 2. Procesar cada documento
-    for doc_name, text in docs.items():
-        print(f"\n📄 Procesando documento: {doc_name}")
+    for name in docs:
+        print(f"📄 Procesando {name}")
+        raw = download_doc(name)
+        text = read_doc(name, raw)
 
-        # 2.1 Crear chunks
+        if not text.strip():
+            print(f"⚠️ Documento vacío o ilegible: {name}")
+            continue
+
         chunks = chunk_text(text, chunk_size=500, overlap=50)
-        print(f"   → Generados {len(chunks)} chunks para {doc_name}")
+        print(f"   → {len(chunks)} chunks generados")
 
-        # 2.2 Guardar en Supabase
-        save_chunks_to_supabase(doc_name, chunks)
+        save_chunks_to_supabase(name, chunks)
 
-    print("\n✅ Pipeline completado. Documentos vectorizados en Supabase.")
+    print("\n✅ Pipeline completada.")
 
 
 if __name__ == "__main__":
-    main()
+    # Si ejecutas: python -m pipeline.run_pipeline file1.docx file2.pdf
+    args = sys.argv[1:]
+    main(files=args if args else None)
