@@ -1,15 +1,18 @@
-import io
+import os
 import sys
-from pypdf import PdfReader
+import io
 from docx import Document
+from pypdf import PdfReader
 
-from .storage_client import list_docs, download_doc
 from .chunker import chunk_text
 from .vectorizer import save_chunks_to_supabase
+from .upload_doc import upload_doc  # 👈 función que sube al bucket
 
-
+# ==========
+# Funciones auxiliares
+# ==========
 def read_doc(name: str, data: bytes) -> str:
-    """Lee documentos desde Supabase Storage."""
+    """Lee documentos de distintos formatos desde bytes."""
     if name.endswith(".txt"):
         return data.decode("utf-8", errors="replace")
 
@@ -25,36 +28,55 @@ def read_doc(name: str, data: bytes) -> str:
         print(f"⚠️ Formato no soportado: {name}")
         return ""
 
-
+# ==========
+# Pipeline principal
+# ==========
 def main(files=None):
-    print("🚀 Iniciando pipeline desde Supabase Storage...\n")
+    docs_dir = "docs"  # 👈 carpeta local donde guardas los docs
 
-    # Si se pasan archivos concretos → solo esos
-    # Si no → todos los del bucket
-    docs = files if files else list_docs()
+    print("🚀 Iniciando pipeline (subida + vectorización)...\n")
+
+    if files:
+        docs = files
+    else:
+        docs = [
+            os.path.join(docs_dir, f)
+            for f in os.listdir(docs_dir)
+            if f.endswith((".pdf", ".docx", ".txt"))
+        ]
 
     if not docs:
-        print("⚠️ No se encontraron documentos en el bucket.")
+        print("⚠️ No se encontraron documentos en docs/")
         return
 
-    for name in docs:
-        print(f"📄 Procesando {name}")
-        raw = download_doc(name)
-        text = read_doc(name, raw)
+    for path in docs:
+        fname = os.path.basename(path)
 
+        # 1. Subir al bucket
+        print(f"📂 Subiendo {fname} al bucket...")
+        upload_doc(path)
+
+        # 2. Leer contenido
+        with open(path, "rb") as f:
+            raw = f.read()
+
+        text = read_doc(fname, raw)
         if not text.strip():
-            print(f"⚠️ Documento vacío o ilegible: {name}")
+            print(f"⚠️ Documento vacío o ilegible: {fname}")
             continue
 
+        # 3. Chunking
         chunks = chunk_text(text, chunk_size=500, overlap=50)
         print(f"   → {len(chunks)} chunks generados")
 
-        save_chunks_to_supabase(name, chunks)
+        # 4. Guardar embeddings en Supabase
+        save_chunks_to_supabase(fname, chunks)
 
     print("\n✅ Pipeline completada.")
 
-
+# ==========
+# Entrada CLI
+# ==========
 if __name__ == "__main__":
-    # Si ejecutas: python -m pipeline.run_pipeline file1.docx file2.pdf
     args = sys.argv[1:]
     main(files=args if args else None)
