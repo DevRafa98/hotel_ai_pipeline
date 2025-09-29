@@ -33,5 +33,6 @@ jobs:
           echo "SUPABASE_BUCKET=${{ secrets.SUPABASE_BUCKET }}" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
-      - name: 🚀 Sync docs and run pipeline
-        run: python pipeline.sync_and_run.py
+      - name: 🚀 Run pipeline
+        run: python -m pipeline.sync_and_run
+
