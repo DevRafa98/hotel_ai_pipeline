@@ -1,10 +1,9 @@
 name: Update Knowledge Base
 
 on:
-  push:
-    branches:
-      - main   # ⚡ se ejecuta al hacer push a main
-  workflow_dispatch: # ⚡ lo puedes lanzar manualmente desde Actions
+  schedule:
+    - cron: "0 * * * *"   # ⏰ se ejecuta cada hora
+  workflow_dispatch:       # ⚡ también lo puedes lanzar manualmente
 
 jobs:
   update-knowledge-base:
@@ -33,3 +32,6 @@ jobs:
 
       - name: 🚀 Run pipeline
         run: python pipeline/run_pipeline.py
+
+      - name: ✅ Done
+        run: echo "Pipeline ejecutada correctamente 🚀"
