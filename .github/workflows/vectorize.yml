@@ -2,7 +2,7 @@ name: Update Knowledge Base
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # ⏰ se ejecuta cada hora
+    - cron: "*/30 * * * *"   # ⏰ se ejecuta cada hora
   workflow_dispatch:       # ⚡ también lo puedes lanzar manualmente
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
       - name: 🚀 Run pipeline
-        run: python pipeline/run_pipeline.py
+        run: python -m pipeline.run_pipeline
 
       - name: ✅ Done
         run: echo "Pipeline ejecutada correctamente 🚀"
