@@ -1,8 +1,8 @@
+boto3
 supabase
-langchain
-langchain-openai
-pypdf
 python-dotenv
+openai
 tiktoken
-python-docx
+langchain
 langchain-community
+langchain-openai
